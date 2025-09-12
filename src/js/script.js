@@ -99,10 +99,10 @@ const speechText = document.getElementById('speech-text');
 const gifContainer = document.getElementById('gif-container');
 
 // State variables
-let model;
-let sequence = [];
-const SEQUENCE_LENGTH = 30;
-const actions = ['i love you', 'thank you', 'hello']; // The actions your model can predict
+let hands = null;
+let camera = null;
+let backendConnected = false;
+let isProcessing = false;
 
 // Speech Recognition Setup
 let recognition;
@@ -702,18 +702,25 @@ function toggleSpeechRecognition() {
     }
 }
 
-// Add these configurations at the top of your file
-const holisticConfig = {
+// Backend API configuration
+const BACKEND_URL = 'http://localhost:5000';
+const API_ENDPOINTS = {
+    status: `${BACKEND_URL}/status`,
+    predict: `${BACKEND_URL}/predict`,
+    health: `${BACKEND_URL}/health`
+};
+
+// MediaPipe Hands configuration
+const handsConfig = {
     locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
     }
 };
 
 const modelConfig = {
-    maxHands: 1,
-    complexity: 'lite',
-    smoothLandmarks: true,
-    minDetectionConfidence: 0.7,
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.5,
     minTrackingConfidence: 0.5
 };
 
@@ -757,94 +764,202 @@ function hideCameraOverlay() {
     }
 }
 
-// Function to extract keypoints from MediaPipe results
-function extractKeypoints(results) {
-    const pose = results.poseLandmarks ? results.poseLandmarks.map(res => [res.x, res.y, res.z, res.visibility]).flat() : new Array(33 * 4).fill(0);
-    const face = results.faceLandmarks ? results.faceLandmarks.map(res => [res.x, res.y, res.z]).flat() : new Array(468 * 3).fill(0);
-    const lh = results.leftHandLandmarks ? results.leftHandLandmarks.map(res => [res.x, res.y, res.z]).flat() : new Array(21 * 3).fill(0);
-    const rh = results.rightHandLandmarks ? results.rightHandLandmarks.map(res => [res.x, res.y, res.z]).flat() : new Array(21 * 3).fill(0);
-    return [...pose, ...face, ...lh, ...rh];
+// Hand connections for MediaPipe Hands
+const HAND_CONNECTIONS = [
+    [0, 1], [1, 2], [2, 3], [3, 4], // thumb
+    [0, 5], [5, 6], [6, 7], [7, 8], // index finger
+    [0, 9], [9, 10], [10, 11], [11, 12], // middle finger
+    [0, 13], [13, 14], [14, 15], [15, 16], // ring finger
+    [0, 17], [17, 18], [18, 19], [19, 20], // pinky
+    [0, 5], [5, 9], [9, 13], [13, 17] // palm connections
+];
+
+// Backend status functions
+async function checkBackendStatus() {
+    const backendStatusText = document.getElementById('backend-status-text');
+    
+    try {
+        const response = await fetch(API_ENDPOINTS.status, {
+            method: 'GET',
+            timeout: 5000
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            backendConnected = data.model_loaded && data.mediapipe_loaded;
+            
+            if (backendConnected) {
+                updateStatus('Backend connected - Ready for detection', 'success');
+                if (backendStatusText) backendStatusText.textContent = 'Connected ✓';
+            } else {
+                updateStatus('Backend connected but model not ready', 'warning');
+                if (backendStatusText) backendStatusText.textContent = 'Connected (Model Loading) ⚠';
+            }
+        } else {
+            throw new Error('Backend not responding');
+        }
+    } catch (error) {
+        backendConnected = false;
+        updateStatus('Backend offline - Please start the server', 'error');
+        if (backendStatusText) backendStatusText.textContent = 'Offline ✗';
+        console.error('Backend check failed:', error);
+    }
 }
 
-async function onResults(results) {
+// Extract hand features from MediaPipe results
+function extractHandFeatures(results) {
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        return null;
+    }
+    
+    try {
+        const landmarks = results.multiHandLandmarks[0];
+        const data_aux = [];
+        const x_ = [];
+        const y_ = [];
+        
+        // Extract coordinates
+        for (let i = 0; i < landmarks.length; i++) {
+            x_.push(landmarks[i].x);
+            y_.push(landmarks[i].y);
+        }
+        
+        // Normalize coordinates
+        for (let i = 0; i < landmarks.length; i++) {
+            data_aux.push(landmarks[i].x - Math.min(...x_));
+            data_aux.push(landmarks[i].y - Math.min(...y_));
+        }
+        
+        return data_aux;
+    } catch (error) {
+        console.error('Error extracting hand features:', error);
+        return null;
+    }
+}
+
+// Send prediction request to backend
+async function sendPredictionRequest(handFeatures) {
+    if (!backendConnected || isProcessing || !handFeatures) {
+        console.log('Prediction skipped:', { backendConnected, isProcessing, hasFeatures: !!handFeatures });
+        return null;
+    }
+    
+    try {
+        isProcessing = true;
+        console.log('Sending prediction request with features:', handFeatures.length);
+        
+        const response = await fetch(API_ENDPOINTS.predict, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                features: handFeatures
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Prediction response:', data);
+            return data;
+        } else {
+            const errorText = await response.text();
+            console.error('HTTP error:', response.status, errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Prediction request failed:', error);
+        return null;
+    } finally {
+        isProcessing = false;
+    }
+}
+
+// MediaPipe Hands results handler
+function onResults(results) {
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-    // Draw landmarks
-    drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
-    drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', lineWidth: 2 });
-    drawConnectors(canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION, { color: '#C0C0C070', lineWidth: 1 });
-    drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, { color: '#CC0000', lineWidth: 5 });
-    drawLandmarks(canvasCtx, results.leftHandLandmarks, { color: '#00FF00', lineWidth: 2 });
-    drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, { color: '#00CC00', lineWidth: 5 });
-    drawLandmarks(canvasCtx, results.rightHandLandmarks, { color: '#FF0000', lineWidth: 2 });
-    canvasCtx.restore();
-
-    // Hide camera overlay when landmarks are detected
-    if (results.poseLandmarks || results.leftHandLandmarks || results.rightHandLandmarks) {
-        hideCameraOverlay();
+    
+    // Draw the video frame
+    if (results.image) {
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
     }
-
-    // Prediction logic
-    const keypoints = extractKeypoints(results);
-    sequence.push(keypoints);
-    sequence = sequence.slice(-SEQUENCE_LENGTH); // Keep the sequence to the last 30 frames
-
-    if (model && sequence.length === SEQUENCE_LENGTH) {
-        try {
-            const tensor = tf.tensor([sequence]);
-            const prediction = await model.predict(tensor).data();
-            tensor.dispose();
+    
+    // Draw hand landmarks
+    if (results.multiHandLandmarks) {
+        console.log('Hands detected:', results.multiHandLandmarks.length);
+        
+        for (const landmarks of results.multiHandLandmarks) {
+            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
+            drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 3 });
+        }
+        
+        // Send prediction request if hands are detected and backend is connected
+        if (results.multiHandLandmarks.length > 0 && backendConnected && !isProcessing) {
+            const handFeatures = extractHandFeatures(results);
             
-            const predictedIndex = prediction.indexOf(Math.max(...prediction));
-            const predictedAction = actions[predictedIndex];
-            
-            if (outputElement.innerText !== predictedAction) {
-                outputElement.innerText = predictedAction;
-                
-                // Text-to-speech
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(predictedAction);
-                    utterance.rate = 0.8;
-                    utterance.pitch = 1.2;
-                    speechSynthesis.speak(utterance);
-                }
-                
-                // Update status
-                updateStatus(`Detected: ${predictedAction}`, 'success');
+            if (handFeatures) {
+                console.log('Extracted hand features:', handFeatures.length);
+                // Send prediction request
+                sendPredictionRequest(handFeatures).then(prediction => {
+                    if (prediction && prediction.success) {
+                        outputElement.textContent = prediction.prediction;
+                        
+                        // Text-to-speech
+                        if ('speechSynthesis' in window) {
+                            const utterance = new SpeechSynthesisUtterance(prediction.prediction);
+                            utterance.rate = 0.8;
+                            utterance.pitch = 1.2;
+                            speechSynthesis.speak(utterance);
+                        }
+                        
+                        // Update status
+                        updateStatus(`Detected: ${prediction.prediction}`, 'success');
+                    } else if (prediction && !prediction.success) {
+                        outputElement.textContent = prediction.prediction || 'No hand detected';
+                    }
+                });
+            } else {
+                console.log('Failed to extract hand features');
             }
-        } catch (error) {
-            console.error('Prediction error:', error);
-            updateStatus('Prediction error', 'error');
+        } else {
+            console.log('Prediction conditions not met:', { 
+                hasHands: results.multiHandLandmarks.length > 0, 
+                backendConnected, 
+                isProcessing 
+            });
+        }
+    } else {
+        // No hands detected
+        if (outputElement && outputElement.textContent !== 'Waiting for detection...') {
+            outputElement.textContent = 'Waiting for detection...';
         }
     }
+    
+    canvasCtx.restore();
 }
 
+// Initialize the real-time detection system
 async function main() {
     try {
-        // Show loading overlay
-        updateStatus('Loading AI Model...', 'info');
+        showLoadingOverlay();
+        updateStatus('Initializing Real-time Detection System...', 'info');
         
-        // Load the model
-        console.log('Loading model...');
-        model = await tf.loadLayersModel('./src/models/model/model.json');
-        console.log('Model loaded.');
+        // Check backend status first
+        await checkBackendStatus();
         
-        updateStatus('Model loaded successfully!', 'success');
-        
-        // Initialize MediaPipe Holistic
-        updateStatus('Initializing MediaPipe...', 'info');
-        const holistic = new Holistic(holisticConfig);
-        holistic.setOptions(modelConfig);
-        holistic.onResults(onResults);
+        // Initialize MediaPipe Hands
+        updateStatus('Initializing MediaPipe Hands...', 'info');
+        hands = new Hands(handsConfig);
+        hands.setOptions(modelConfig);
+        hands.onResults(onResults);
         
         updateStatus('Setting up camera...', 'info');
         
         // Setup camera
-        const camera = new Camera(videoElement, {
+        camera = new Camera(videoElement, {
             onFrame: async () => {
-                await holistic.send({ image: videoElement });
+                await hands.send({ image: videoElement });
             },
             width: 640,
             height: 480
@@ -855,25 +970,30 @@ async function main() {
         // Hide loading overlay and show camera overlay
         setTimeout(() => {
             hideLoadingOverlay();
-            updateStatus('Camera active - Ready for detection', 'success');
+            if (backendConnected) {
+                updateStatus('Camera active - Ready for real-time detection', 'success');
+            } else {
+                updateStatus('Camera active - Backend not connected', 'warning');
+            }
             showCameraOverlay();
         }, 1000);
         
     } catch (error) {
         console.error('Initialization error:', error);
-        updateStatus('Failed to initialize system', 'error');
+        updateStatus('Failed to initialize real-time detection system', 'error');
         
-        // Show error message to user
         if (outputElement) {
-            outputElement.innerHTML = '<span style="color: #ff4444;">Error: Failed to load system</span>';
+            outputElement.innerHTML = '<span style="color: #ff4444;">Error: Failed to initialize detection system</span>';
         }
         
-        // Hide loading overlay after error
         setTimeout(() => {
             hideLoadingOverlay();
         }, 2000);
     }
 }
+
+// Periodic backend status check
+setInterval(checkBackendStatus, 10000); // Check every 10 seconds
 
 // Initialize the system
 main();

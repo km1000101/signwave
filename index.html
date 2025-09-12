@@ -16,10 +16,8 @@
     <link rel="stylesheet" href="src/css/style.css">
     
     <!-- AI/ML Libraries for sign language detection -->
-    <!-- TensorFlow.js for machine learning model inference -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
-    <!-- MediaPipe Holistic for pose and hand landmark detection -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe Hands for hand landmark detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <!-- MediaPipe drawing utilities for rendering landmarks on canvas -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <!-- MediaPipe camera utilities for video stream handling -->
@@ -44,6 +42,7 @@
                     <li><a href="src/pages/learn.html" class="nav-link">Learn to Sign</a></li>
                     <li><a href="src/pages/dictionary.html" class="nav-link">Sign Dictionary</a></li>
                     <li><a href="src/pages/character.html" class="nav-link">Character Recognition</a></li>
+                    <li><a href="src/pages/realtime.html" class="nav-link">Real-time Detection</a></li>
                     <li><a href="src/pages/about.html" class="nav-link">About ISL</a></li>
                 </ul>
             </nav>
@@ -63,6 +62,10 @@
                         <div class="status-indicator">
                             <span class="status-dot"></span>
                             <span class="status-text">Initializing...</span>
+                        </div>
+                        <!-- Backend status indicator -->
+                        <div class="backend-status" style="margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 5px;">
+                            <small>Backend Status: <span id="backend-status-text">Checking...</span></small>
                         </div>
                     </div>
                     
@@ -95,19 +98,23 @@
                             <div class="help-steps">
                                 <div class="step">
                                     <div class="step-number">1</div>
-                                    <p>Allow camera access when prompted</p>
+                                    <p>Start the Python backend server (run: <code>python backend/app.py</code>)</p>
                                 </div>
                                 <div class="step">
                                     <div class="step-number">2</div>
-                                    <p>Position your hands clearly in the camera view</p>
+                                    <p>Allow camera access when prompted</p>
                                 </div>
                                 <div class="step">
                                     <div class="step-number">3</div>
-                                    <p>Perform the sign language gesture</p>
+                                    <p>Position your hand clearly in the camera view</p>
                                 </div>
                                 <div class="step">
                                     <div class="step-number">4</div>
-                                    <p>View the detected text in real-time</p>
+                                    <p>Show signs for letters A, B, or L for real-time detection</p>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">5</div>
+                                    <p>View the detected character and confidence level</p>
                                 </div>
                             </div>
                         </div>
@@ -117,24 +124,41 @@
             
             <!-- Sidebar tutorial panel with example signs -->
             <aside class="tutorial-panel">
-                <div class="tutorial-title">Try These Signs</div>
-                <!-- Example sign demonstrations with GIFs and descriptions -->
-                <div class="tutorial-section">
-                    <h3>Hello</h3>
-                    <img src="src/assets/gifs/hello.gif" alt="Hello sign demonstration" class="tutorial-gif">
-                    <p class="sign-description">Wave your hand in greeting</p>
+                <div class="tutorial-title">Supported Signs</div>
+                <!-- Example sign demonstrations with descriptions -->
+                <div class="character-grid">
+                    <div class="character-item">
+                        <h3>A</h3>
+                        <div class="character-sign">👊</div>
+                        <p class="sign-description">Closed fist, thumb alongside index</p>
+                    </div>
+                    <div class="character-item">
+                        <h3>B</h3>
+                        <div class="character-sign">✋</div>
+                        <p class="sign-description">Open hand, fingers extended</p>
+                    </div>
+                    <div class="character-item">
+                        <h3>L</h3>
+                        <div class="character-sign">👆</div>
+                        <p class="sign-description">Index up + thumb horizontal</p>
+                    </div>
                 </div>
-                <div class="tutorial-section">
-                    <h3>Thank You</h3>
-                    <img src="src/assets/gifs/thank you.gif" alt="Thank you sign demonstration" class="tutorial-gif">
-                    <p class="sign-description">Touch your chin and move forward</p>
+                
+                <div class="recognition-stats">
+                    <h3>Detection Info</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Model:</span>
+                        <span class="stat-value">Random Forest</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Framework:</span>
+                        <span class="stat-value">Python + MediaPipe</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Backend:</span>
+                        <span class="stat-value">Flask Server</span>
+                    </div>
                 </div>
-                <div class="tutorial-section">
-                    <h3>I Love You</h3>
-                    <img src="src/assets/gifs/i love you.gif" alt="I love you sign demonstration" class="tutorial-gif">
-                    <p class="sign-description">Extend thumb, index, and pinky</p>
-                </div>
-
             </aside>
         </div>
         

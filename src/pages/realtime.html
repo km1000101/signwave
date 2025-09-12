@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Sign Detection - Sign Language Translator</title>
+    <meta name="description" content="Real-time sign language detection using Python backend with model.p and data.pickle files for accurate character recognition.">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <!-- Background animation canvas -->
+    <canvas id="isl-bg-canvas" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;"></canvas>
+    
+    <header class="header">
+        <div class="header-content">
+            <h1>Real-time Sign Detection</h1>
+            <p class="subtitle">Advanced AI-powered sign language recognition using Python backend</p>
+            
+            <!-- Navigation Menu -->
+            <nav class="main-nav">
+                <ul class="nav-list">
+                    <li><a href="../../index.html" class="nav-link">Home</a></li>
+                    <li><a href="learn.html" class="nav-link">Learn to Sign</a></li>
+                    <li><a href="dictionary.html" class="nav-link">Sign Dictionary</a></li>
+                    <li><a href="character.html" class="nav-link">Character Recognition</a></li>
+                    <li><a href="realtime.html" class="nav-link active">Real-time Detection</a></li>
+                    <li><a href="about.html" class="nav-link">About ISL</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="main-flex-row">
+            <div class="container">
+                <div class="camera-section">
+                    <div class="camera-header">
+                        <h2>Real-time Sign Detection</h2>
+                        <div class="status-indicator">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Initializing...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="video-container">
+                        <video id="realtime-video" style="display: none;"></video>
+                        <canvas id="realtime-canvas" width="700px" height="500px"></canvas>
+                        <div class="camera-overlay">
+                            <div class="overlay-text">Show hand signs for real-time detection (A, B, L)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detection-output">
+                        <h3>Detected Sign:</h3>
+                        <div id="realtime-output" class="output-text">Waiting for detection...</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="realtime-confidence-fill"></div>
+                        </div>
+                        <div class="confidence-text" id="realtime-confidence-text">Confidence: 0%</div>
+                    </div>
+                    
+                    <!-- Backend Status -->
+                    <div class="backend-status">
+                        <h3>Backend Status:</h3>
+                        <div id="backend-status" class="status-text">Checking backend connection...</div>
+                        <button id="start-backend" class="backend-btn" style="display: none;">Start Backend Server</button>
+                    </div>
+                </div>
+                
+                <!-- Help Section -->
+                <div class="help-section-container">
+                    <div class="help-section">
+                        <div class="help-content">
+                            <h2>How to Use Real-time Detection</h2>
+                            <div class="help-steps">
+                                <div class="step">
+                                    <div class="step-number">1</div>
+                                    <p>Start the Python backend server (click "Start Backend Server" button)</p>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">2</div>
+                                    <p>Allow camera access when prompted</p>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">3</div>
+                                    <p>Position your hand clearly in the camera view</p>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">4</div>
+                                    <p>Show signs for letters A, B, or L for real-time detection</p>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">5</div>
+                                    <p>View the detected character and confidence level</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <aside class="tutorial-panel">
+                <div class="tutorial-title">Supported Signs</div>
+                <div class="character-grid">
+                    <div class="character-item">
+                        <h3>A</h3>
+                        <div class="character-sign">👊</div>
+                        <p class="sign-description">Closed fist, thumb alongside index</p>
+                    </div>
+                    <div class="character-item">
+                        <h3>B</h3>
+                        <div class="character-sign">✋</div>
+                        <p class="sign-description">Open hand, fingers extended</p>
+                    </div>
+                    <div class="character-item">
+                        <h3>L</h3>
+                        <div class="character-sign">👆</div>
+                        <p class="sign-description">Index up + thumb horizontal</p>
+                    </div>
+                </div>
+                
+                <div class="recognition-stats">
+                    <h3>Detection Stats</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Detections:</span>
+                        <span class="stat-value" id="total-detections">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Backend Status:</span>
+                        <span class="stat-value" id="backend-status-value">Offline</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Detected:</span>
+                        <span class="stat-value" id="last-detected">None</span>
+                    </div>
+                </div>
+                
+                <div class="backend-info">
+                    <h3>Backend Information</h3>
+                    <div class="info-item">
+                        <span class="info-label">Model:</span>
+                        <span class="info-value">model.p</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Data:</span>
+                        <span class="info-value">data.pickle</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Framework:</span>
+                        <span class="info-value">Python + MediaPipe</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+        
+        <!-- Detection History Section -->
+        <div class="character-history-section">
+            <div class="history-container">
+                <div class="history-header">
+                    <h2>Detection History</h2>
+                    <button id="clear-history" class="clear-btn">Clear History</button>
+                </div>
+                
+                <div class="history-list" id="history-list">
+                    <div class="history-placeholder">No signs detected yet</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Loading Real-time Detection System...</h3>
+            <p>Please wait while we initialize the detection system</p>
+        </div>
+    </div>
+
+    <script src="../js/realtime.js"></script>
+</body>
+</html>
