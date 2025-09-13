@@ -70,6 +70,7 @@ The backend automatically loads both models:
 Access the new page at: `src/pages/isl-new.html`
 
 #### Features:
+- **Modern UI Design**: Matches the website's design language with glassmorphism effects
 - **Live Camera Feed**: Real-time hand detection and landmark visualization
 - **Detection Controls**: 
   - Detection mode selection (Real-time/Single/Batch)
@@ -78,6 +79,8 @@ Access the new page at: `src/pages/isl-new.html`
 - **Prediction Display**: Large character display with confidence meter
 - **Detection History**: Scrollable list of previous detections
 - **Status Indicators**: Real-time backend and model status
+- **Tutorial Panel**: Sidebar with supported signs and model information
+- **Responsive Design**: Optimized for desktop and mobile devices
 
 #### Controls:
 - **Start Detection**: Begin real-time detection
@@ -213,6 +216,30 @@ Check the browser console and backend logs for detailed error messages. The stat
 - **Confidence Threshold**: Higher values reduce false positives but may miss valid signs
 
 - **Processing Queue**: The system uses a queue-based approach to prevent overwhelming the backend
+
+## UI Design Features
+
+The ISL_NEW page has been designed to perfectly match the website's existing design language:
+
+### Design Elements
+- **Glassmorphism Effects**: Translucent backgrounds with blur effects
+- **Gradient Buttons**: Matching the website's purple-to-orange gradient theme
+- **Consistent Typography**: Using Poppins font family throughout
+- **Color Scheme**: Purple (#7b2ff2) and orange (#f39108) accent colors
+- **Hover Animations**: Smooth transitions and transform effects
+- **Responsive Layout**: Adapts to different screen sizes
+
+### Layout Structure
+- **Main Container**: Uses the same container styling as other pages
+- **Tutorial Panel**: Sidebar with supported signs and statistics
+- **Detection Area**: Two-column layout for video and controls
+- **History Section**: Full-width section below the main content
+
+### Interactive Elements
+- **Status Indicators**: Animated dots with color-coded states
+- **Confidence Meter**: Gradient progress bar with smooth animations
+- **Button Groups**: Rounded buttons with hover effects
+- **Form Controls**: Styled inputs and selects with focus states
 
 ## Future Enhancements
 

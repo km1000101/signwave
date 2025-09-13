@@ -109,14 +109,14 @@ const detectionSpeed = document.getElementById('detection-speed');
 
 // History elements
 const historyList = document.getElementById('history-list');
-const totalDetections = document.getElementById('total-detections');
+const backendStatusValue = document.getElementById('backend-status-value');
+const lastDetected = document.getElementById('last-detected');
 
 // Global variables
 let hands = null;
 let camera = null;
 let isDetectionActive = false;
 let detectionHistory = [];
-let totalDetectionsCount = 0;
 let lastPrediction = null;
 let predictionQueue = [];
 let isProcessing = false;
@@ -197,10 +197,16 @@ async function checkBackendStatus() {
             if (isConnected) {
                 updateStatus('Backend connected - Ready for detection', 'success');
                 updateModelStatus('Online');
+                if (backendStatusValue) {
+                    backendStatusValue.textContent = 'Online';
+                }
                 return true;
             } else {
                 updateStatus('Backend connected but model not loaded', 'warning');
                 updateModelStatus('Partial');
+                if (backendStatusValue) {
+                    backendStatusValue.textContent = 'Partial';
+                }
                 return false;
             }
         } else {
@@ -209,6 +215,9 @@ async function checkBackendStatus() {
     } catch (error) {
         updateStatus('Backend offline - Please start the server', 'error');
         updateModelStatus('Offline');
+        if (backendStatusValue) {
+            backendStatusValue.textContent = 'Offline';
+        }
         console.error('Backend check failed:', error);
         return false;
     }
@@ -314,7 +323,6 @@ function addToHistory(character, confidence) {
     }
     
     updateHistoryDisplay();
-    updateStats();
 }
 
 // Update history display
@@ -339,8 +347,8 @@ function updateHistoryDisplay() {
 
 // Update statistics
 function updateStats() {
-    if (totalDetections) {
-        totalDetections.textContent = totalDetectionsCount;
+    if (lastDetected && detectionHistory.length > 0) {
+        lastDetected.textContent = detectionHistory[0].character;
     }
 }
 
@@ -413,7 +421,6 @@ async function processPredictionQueue() {
             updateConfidenceDisplay(prediction.confidence);
             
             // Add to history if confidence is above threshold
-            totalDetectionsCount++;
             addToHistory(prediction.prediction, prediction.confidence);
             lastPrediction = prediction;
         } else {
@@ -537,7 +544,6 @@ async function captureFrame() {
                 predictedCharacter.textContent = data.prediction;
                 updateConfidenceDisplay(data.confidence);
                 
-                totalDetectionsCount++;
                 addToHistory(data.prediction, data.confidence);
                 
                 updateStatus('Frame captured and processed', 'success');
@@ -557,9 +563,7 @@ async function captureFrame() {
 // Clear detection history
 function clearHistory() {
     detectionHistory = [];
-    totalDetectionsCount = 0;
     updateHistoryDisplay();
-    updateStats();
     updateStatus('History cleared', 'info');
 }
 

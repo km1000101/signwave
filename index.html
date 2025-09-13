@@ -41,8 +41,6 @@
                     <li><a href="index.html" class="nav-link active">Home</a></li>
                     <li><a href="src/pages/learn.html" class="nav-link">Learn to Sign</a></li>
                     <li><a href="src/pages/dictionary.html" class="nav-link">Sign Dictionary</a></li>
-                    <li><a href="src/pages/character.html" class="nav-link">Character Recognition</a></li>
-                    <li><a href="src/pages/realtime.html" class="nav-link">Real-time Detection</a></li>
                     <li><a href="src/pages/isl-new.html" class="nav-link">ISL New Model</a></li>
                     <li><a href="src/pages/about.html" class="nav-link">About ISL</a></li>
                 </ul>
@@ -52,117 +50,6 @@
 
     <!-- Main application content area -->
     <main class="main-content">
-        <div class="main-flex-row">
-            <div class="container">
-                <!-- Live camera feed section for sign language detection -->
-                <div class="camera-section">
-                    <!-- Camera section header with status indicator -->
-                    <div class="camera-header">
-                        <h2>Live Camera Feed</h2>
-                        <!-- Status indicator shows camera initialization state -->
-                        <div class="status-indicator">
-                            <span class="status-dot"></span>
-                            <span class="status-text">Initializing...</span>
-                        </div>
-                        <!-- Backend status indicator -->
-                        <div class="backend-status" style="margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 5px;">
-                            <small>Backend Status: <span id="backend-status-text">Checking...</span></small>
-                        </div>
-                    </div>
-                    
-                    <!-- Video container with camera feed and overlay -->
-                    <div class="video-container">
-                        <!-- Hidden video element for camera stream -->
-                        <video id="video" style="display: none;"></video>
-                        <!-- Canvas for rendering video feed and hand landmarks -->
-                        <canvas id="canvas" width="700px" height="500px"></canvas>
-                        <!-- Overlay with instructions for user -->
-                        <div class="camera-overlay">
-                            <div class="overlay-text">Position your hands in the camera view</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Real-time detection output display -->
-                    <div class="detection-output">
-                        <h3>Detected Sign:</h3>
-                        <!-- Text output showing recognized sign language gesture -->
-                        <div id="output" class="output-text">Waiting for detection...</div>
-                    </div>
-                </div>
-                
-                <!-- User instructions section with step-by-step guide -->
-                <div class="help-section-container">
-                    <div class="help-section">
-                        <div class="help-content">
-                            <h2>How to Use</h2>
-                            <!-- Step-by-step instructions for users -->
-                            <div class="help-steps">
-                                <div class="step">
-                                    <div class="step-number">1</div>
-                                    <p>Start the Python backend server (run: <code>python backend/app.py</code>)</p>
-                                </div>
-                                <div class="step">
-                                    <div class="step-number">2</div>
-                                    <p>Allow camera access when prompted</p>
-                                </div>
-                                <div class="step">
-                                    <div class="step-number">3</div>
-                                    <p>Position your hand clearly in the camera view</p>
-                                </div>
-                                <div class="step">
-                                    <div class="step-number">4</div>
-                                    <p>Show signs for letters A, B, or L for real-time detection</p>
-                                </div>
-                                <div class="step">
-                                    <div class="step-number">5</div>
-                                    <p>View the detected character and confidence level</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Sidebar tutorial panel with example signs -->
-            <aside class="tutorial-panel">
-                <div class="tutorial-title">Supported Signs</div>
-                <!-- Example sign demonstrations with descriptions -->
-                <div class="character-grid">
-                    <div class="character-item">
-                        <h3>A</h3>
-                        <div class="character-sign">👊</div>
-                        <p class="sign-description">Closed fist, thumb alongside index</p>
-                    </div>
-                    <div class="character-item">
-                        <h3>B</h3>
-                        <div class="character-sign">✋</div>
-                        <p class="sign-description">Open hand, fingers extended</p>
-                    </div>
-                    <div class="character-item">
-                        <h3>L</h3>
-                        <div class="character-sign">👆</div>
-                        <p class="sign-description">Index up + thumb horizontal</p>
-                    </div>
-                </div>
-                
-                <div class="recognition-stats">
-                    <h3>Detection Info</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Model:</span>
-                        <span class="stat-value">Random Forest</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Framework:</span>
-                        <span class="stat-value">Python + MediaPipe</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Backend:</span>
-                        <span class="stat-value">Flask Server</span>
-                    </div>
-                </div>
-            </aside>
-        </div>
-        
         <!-- Voice-to-sign language conversion section -->
         <div class="audio-section">
             <div class="audio-container">
@@ -231,15 +118,6 @@
         </div>
     </div>
 
-    <!-- Loading overlay shown during AI model initialization -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-content">
-            <!-- Animated loading spinner -->
-            <div class="loading-spinner"></div>
-            <h3>Loading AI Model...</h3>
-            <p>Please wait while we initialize the sign language detection system</p>
-        </div>
-    </div>
 
     <!-- Main JavaScript file containing all application logic -->
     <script src="src/js/script.js"></script>
