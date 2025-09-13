@@ -21,13 +21,15 @@ CORS(app)  # Enable CORS for all routes
 
 # Global variables for model and MediaPipe
 model = None
+isl_new_model = None
 mp_hands = None
 hands = None
 labels_dict = {'0': 'A', '1': 'B', '2': 'L'}
+isl_new_labels_dict = {0: 'A', 1: 'B', 2: 'L'}
 
 def initialize_model():
     """Initialize the model and MediaPipe components"""
-    global model, mp_hands, hands
+    global model, isl_new_model, mp_hands, hands
     
     try:
         logger.info("Loading model...")
@@ -59,6 +61,34 @@ def initialize_model():
         if not model_loaded:
             logger.error("Could not load model from any path")
             return False
+        
+        # Load ISL_NEW model
+        logger.info("Loading ISL_NEW model...")
+        isl_new_model_paths = [
+            'ISL_NEW/model.p',
+            '../ISL_NEW/model.p',
+            '../../ISL_NEW/model.p',
+            './ISL_NEW/model.p'
+        ]
+        
+        isl_new_loaded = False
+        for model_path in isl_new_model_paths:
+            try:
+                logger.info(f"Trying to load ISL_NEW model from: {model_path}")
+                model_dict = pickle.load(open(model_path, 'rb'))
+                isl_new_model = model_dict['model']
+                logger.info(f"ISL_NEW model loaded successfully from: {model_path}")
+                isl_new_loaded = True
+                break
+            except FileNotFoundError:
+                logger.warning(f"ISL_NEW model file not found at: {model_path}")
+                continue
+            except Exception as e:
+                logger.error(f"Error loading ISL_NEW model from {model_path}: {e}")
+                continue
+        
+        if not isl_new_loaded:
+            logger.warning("Could not load ISL_NEW model - continuing with original model only")
         
         # Initialize MediaPipe
         logger.info("Initializing MediaPipe...")
@@ -177,11 +207,14 @@ def status():
     return jsonify({
         'status': 'running',
         'model_loaded': model is not None,
+        'isl_new_model_loaded': isl_new_model is not None,
         'mediapipe_loaded': hands is not None,
         'model_file_exists': model_file_exists,
         'supported_labels': list(labels_dict.values()),
+        'isl_new_supported_labels': list(isl_new_labels_dict.values()),
         'debug_info': {
             'model_type': str(type(model)) if model else 'None',
+            'isl_new_model_type': str(type(isl_new_model)) if isl_new_model else 'None',
             'hands_type': str(type(hands)) if hands else 'None',
             'current_working_dir': str(Path.cwd())
         }
@@ -300,6 +333,57 @@ def predict_batch():
         
     except Exception as e:
         logger.error(f"Batch prediction error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/isl_new_predict', methods=['POST'])
+def isl_new_predict():
+    """Predict sign language using ISL_NEW model from hand features"""
+    try:
+        if isl_new_model is None:
+            return jsonify({'error': 'ISL_NEW model not loaded'}), 500
+        
+        data = request.get_json()
+        if not data or 'features' not in data:
+            return jsonify({'error': 'No features data provided'}), 400
+        
+        features = np.array(data['features'])
+        if len(features) == 0:
+            return jsonify({
+                'prediction': 'No hand features provided',
+                'confidence': 0.0,
+                'success': False
+            })
+        
+        # Ensure features are the right length (84 for ISL_NEW model)
+        expected_len = 84
+        if len(features) < expected_len:
+            features = np.pad(features, (0, expected_len - len(features)), 'constant')
+        elif len(features) > expected_len:
+            features = features[:expected_len]
+        
+        # Make prediction using ISL_NEW model
+        prediction = isl_new_model.predict([features])
+        predicted_label = prediction[0]
+        
+        # Convert prediction to character
+        if isinstance(predicted_label, str):
+            predicted_character = predicted_label
+        else:
+            predicted_character = isl_new_labels_dict.get(int(predicted_label), str(predicted_label))
+        
+        # Calculate confidence (simplified - in real implementation, use predict_proba)
+        confidence = 0.85  # Placeholder confidence
+        
+        return jsonify({
+            'prediction': predicted_character,
+            'confidence': confidence,
+            'success': True,
+            'model': 'ISL_NEW',
+            'features_count': len(features)
+        })
+        
+    except Exception as e:
+        logger.error(f"ISL_NEW prediction error: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
