@@ -13,7 +13,7 @@ Experience the Indian Sign Language Translator in action with real-time detectio
 Our project is also available as a comprehensive presentation that covers all aspects of the Indian Sign Language Translator system. You can access it in multiple formats:
 
 - **📄 PDF Version**: [Download Presentation PDF](project_ppt.pdf)
-- **🌐 Live Canva Version**: [View Interactive Presentation](https://www.canva.com/design/DAGobmuI5qQ/6PWe3P468IhbBKaoEAyiYg/view?utm_content=DAGobmuI5qQ&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h120e3204b4)
+- **🌐 Live Canva Version**: [View Interactive Presentation](https://real-time-isl-to-text.my.canva.site/black-and-white-modern-tech-company-presentation-pdf)
 
 The presentation provides:
 - **Project Overview** - Introduction to ISL and our solution
