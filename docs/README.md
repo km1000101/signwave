@@ -4,7 +4,7 @@ A comprehensive web application for real-time Indian Sign Language (ISL) detecti
 
 ## 🌐 Live Demo
 
-**Try it now!** [Live Project Demo](https://km1000101.github.io/signwave/)
+**Try it now!** [Live Project Demo](https://signwave-five.vercel.app/)
 
 Experience the Indian Sign Language Translator in action with real-time detection, interactive learning, and comprehensive sign dictionary.
 
